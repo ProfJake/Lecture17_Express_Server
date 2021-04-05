@@ -22,8 +22,7 @@ let app = express();
 //And transform them into a document for inserting into the "activities"
 // collection
 function docifyActivity(params){
-    let doc = { activity: { type: params.activity }, weight: params.weight,
-		distance: params.distance, time: params.time, user: params.user};
+    let doc = { activity: { type: params.activity.toString().toLowerCase() }, weight: Number(params.weight), distance: Number(params.distance), time: Number(params.time), user: params.user.toString().toLowerCase()};
     return doc;
 }
 
@@ -120,6 +119,13 @@ app.get('/', function (req, res){
     res.end('<html><body><br><br><a href="/insert">home/insert</a>&emsp;&emsp;<a href="/search">sea\
 rch Page</a></body></html>');
 });
+
+//Will run for any method request for search (or any search subpage)
+app.use('/search', function(req, res, next){
+    let now = new Date().toLocaleTimeString("en-US", {timeZone: "America/New_York"});
+    console.log('Request to Search Route Received: '+ now);
+    next();
+});
 app.get('/insert', function (req, res){
     let page = servResp(null, res);
     res.send(page);
@@ -174,13 +180,13 @@ app.post('/insert', function(req, res){
 		    calories = "ERROR! Please enter appropriate data";
 		    console.log(err.message);
 		    let page = servResp(calories, res);
-		    res.send(page);
+		    res.status(200).send(page);
 		}
 	} else{ //can't move on
 	    calories = "Error! All Fields must have Data";
 	    
 	    let page =  servResp(calories, res);
-	    res.send(page);
+	    res.status(400).send(page);
 	}
     });
     	    
@@ -210,7 +216,7 @@ app.post('/search', function(req, res){
 		let resultOBJ={data: cursor, [prop]  : val, prop: prop};
 
 		searchResp(resultOBJ, res).then( page =>
-						  {res.send(page)
+						 {res.status(200).send(page)
 						  });//call the searchPage
 	    } catch (e){
 		console.log(e.message);
@@ -220,17 +226,17 @@ app.post('/search', function(req, res){
 	    }
 	} else{ // can't move on
 	    searchResp(null, res).then(
-		page => {res.send(page)}
+		page => {res.status(200).send(page)}
 	);
 	}
     });
 });
-//Routes are loaded *in order*.  Like Switch cases, if a route
-//gets matched early then it won't match later routes.  So
+//Routes are loaded *in order*.  Like Switch cases, if a request
+//matches an  early route then it won't match later routes.  So
 //RUNS for any ROUTE not matched to those methods above
 app.use('*', function(req, res){
-    res.writeHead(404);
-    res.end(`<h1> ERROR 404. ${req.url} NOT FOUND</h1><br><br>`);
+    res.status(400);
+    res.end(`<h1> ERROR 400. ${req.url} NOT FOUND</h1><br><br>`);
 });
 
 
